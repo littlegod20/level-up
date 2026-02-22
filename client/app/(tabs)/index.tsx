@@ -1,98 +1,179 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { FlatList, Pressable, StyleSheet, View } from 'react-native';
+import { router } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useHabits } from '@/context/habits-context';
+import { computeStreak } from '@/lib/streaks';
+import { xpProgressInLevel } from '@/constants/xp';
+import { Colors } from '@/constants/theme';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
-export default function HomeScreen() {
+const TODAY = new Date().toISOString().slice(0, 10);
+
+function isHabitDueToday(habit: { frequency: string }): boolean {
+  return habit.frequency === 'daily';
+}
+
+export default function TodayScreen() {
+  const { habits, completions, loading, completeHabit, uncompleteHabit } = useHabits();
+  const colorScheme = useColorScheme() ?? 'light';
+  const colors = Colors[colorScheme];
+
+  const activeHabits = useMemo(
+    () => habits.filter((h) => !h.archived && isHabitDueToday(h)),
+    [habits]
+  );
+
+  const completedToday = useMemo(
+    () => completions.filter((c) => c.date === TODAY && !c.skipped).length,
+    [completions]
+  );
+
+  const totalXP = useMemo(
+    () => completions.filter((c) => !c.skipped).reduce((s, c) => s + c.xpAwarded, 0),
+    [completions]
+  );
+  const { level, current, required } = xpProgressInLevel(totalXP);
+
+  const isCompleted = useCallback(
+    (habitId: string) => completions.some((c) => c.habitId === habitId && c.date === TODAY),
+    [completions]
+  );
+
+  const handleToggle = useCallback(
+    async (habitId: string) => {
+      if (isCompleted(habitId)) {
+        await uncompleteHabit(habitId, TODAY);
+      } else {
+        await completeHabit(habitId, TODAY);
+      }
+    },
+    [completeHabit, uncompleteHabit, isCompleted]
+  );
+
+  if (loading) {
+    return (
+      <ThemedView style={styles.centered}>
+        <ThemedText>Loading…</ThemedText>
+      </ThemedView>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
+      <View style={styles.header}>
+        <ThemedText type="title">Today</ThemedText>
+        <ThemedText type="subtitle">
+          Level {level} · {completedToday}/{activeHabits.length} done
         </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
-
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
+        <View style={styles.xpBar}>
+          <View
+            style={[
+              styles.xpFill,
+              { backgroundColor: colors.tint, width: `${(current / required) * 100}%` },
+            ]}
+          />
+        </View>
+        <ThemedText style={styles.xpLabel}>
+          {current} / {required} XP to next level
         </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+      </View>
+      <FlatList
+        data={activeHabits}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={
+          <ThemedView style={styles.empty}>
+            <ThemedText type="subtitle">Welcome to Level Up</ThemedText>
+            <ThemedText style={styles.emptySub}>Get started by adding your first habit. Complete habits to earn XP and build streaks.</ThemedText>
+            <Pressable style={[styles.addFirst, { backgroundColor: colors.tint }]} onPress={() => router.push('/habit/new')}>
+              <ThemedText style={styles.buttonText}>Add your first habit</ThemedText>
+            </Pressable>
+          </ThemedView>
+        }
+        renderItem={({ item }) => {
+          const done = isCompleted(item.id);
+          const { current: streak } = computeStreak(completions, item.id);
+          return (
+            <Pressable
+              style={[styles.card, { borderLeftColor: item.color }]}
+              onPress={() => handleToggle(item.id)}
+              accessibilityRole="button"
+              accessibilityLabel={`${item.name}. ${done ? 'Completed' : 'Mark complete'}`}
+            >
+              <View style={styles.cardLeft}>
+                <View style={[styles.iconWrap, { backgroundColor: item.color + '30' }]}>
+                  <IconSymbol name="star.fill" size={24} color={item.color} />
+                </View>
+                <View>
+                  <ThemedText type="defaultSemiBold">{item.name}</ThemedText>
+                  {streak > 0 && (
+                    <ThemedText style={styles.streak}>🔥 {streak} day streak</ThemedText>
+                  )}
+                </View>
+              </View>
+              <View style={[styles.checkbox, done && { backgroundColor: colors.tint }]}>
+                {done ? (
+                  <IconSymbol name="checkmark" size={22} color="#fff" />
+                ) : (
+                  <View style={styles.checkboxEmpty} />
+                )}
+              </View>
+            </Pressable>
+          );
+        }}
+      />
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  container: { flex: 1 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 12 },
+  xpBar: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(128,128,128,0.2)',
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  xpFill: { height: '100%', borderRadius: 4 },
+  xpLabel: { fontSize: 12, marginTop: 4, opacity: 0.8 },
+  list: { padding: 16, paddingBottom: 32 },
+  empty: { padding: 24, alignItems: 'center' },
+  emptySub: { textAlign: 'center', marginTop: 8, marginBottom: 16 },
+  addFirst: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12 },
+  buttonText: { color: '#fff', fontWeight: '600' },
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    justifyContent: 'space-between',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    backgroundColor: 'rgba(128,128,128,0.08)',
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  cardLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconWrap: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  streak: { fontSize: 12, marginTop: 2, opacity: 0.8 },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  checkboxEmpty: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: 'rgba(128,128,128,0.5)',
   },
 });

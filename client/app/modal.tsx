@@ -1,15 +1,21 @@
-import { Link } from 'expo-router';
-import { StyleSheet } from 'react-native';
+import { Link, useRouter } from 'expo-router';
+import { StyleSheet, View } from 'react-native';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 
-export default function ModalScreen() {
+export default function SettingsModal() {
+  const router = useRouter();
+
   return (
     <ThemedView style={styles.container}>
-      <ThemedText type="title">This is a modal</ThemedText>
-      <Link href="/" dismissTo style={styles.link}>
-        <ThemedText type="link">Go to home screen</ThemedText>
+      <ThemedText type="title">Settings</ThemedText>
+      <View style={styles.section}>
+        <ThemedText type="subtitle">Level Up</ThemedText>
+        <ThemedText style={styles.muted}>Habit tracking with XP and streaks. V1 – local only.</ThemedText>
+      </View>
+      <Link href="/" asChild>
+        <ThemedText type="link" style={styles.link}>Back to Today</ThemedText>
       </Link>
     </ThemedView>
   );
@@ -18,12 +24,9 @@ export default function ModalScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
+    padding: 24,
   },
-  link: {
-    marginTop: 15,
-    paddingVertical: 15,
-  },
+  section: { marginTop: 16 },
+  muted: { opacity: 0.8, marginTop: 4 },
+  link: { marginTop: 24 },
 });
