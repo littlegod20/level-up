@@ -13,7 +13,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useHabits } from '@/context/habits-context';
+import { CustomWeekdaysPicker } from '@/components/custom-weekdays-picker';
 import { Colors } from '@/constants/theme';
+import { sortWeekdayIndices } from '@/constants/weekdays';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import type { Frequency } from '@/types/habit';
 
@@ -30,6 +32,7 @@ export default function EditHabitScreen() {
 
   const [name, setName] = useState('');
   const [frequency, setFrequency] = useState<Frequency>('daily');
+  const [customWeekdays, setCustomWeekdays] = useState<number[]>([]);
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [xpReward, setXpReward] = useState('10');
   const [reminderTime, setReminderTime] = useState('');
@@ -38,6 +41,7 @@ export default function EditHabitScreen() {
     if (habit) {
       setName(habit.name);
       setFrequency(habit.frequency);
+      setCustomWeekdays(habit.customWeekdays ?? []);
       setSelectedColor(habit.color);
       setXpReward(String(habit.xpReward));
       setReminderTime(habit.reminderTime ?? '');
@@ -55,11 +59,16 @@ export default function EditHabitScreen() {
       Alert.alert('Invalid XP', 'XP reward must be at least 1.');
       return;
     }
+    if (frequency === 'custom' && customWeekdays.length === 0) {
+      Alert.alert('Choose days', 'Add at least one day for a custom schedule.');
+      return;
+    }
     const reminder = reminderTime.trim();
     const parsed = reminder && /\d{1,2}:\d{2}/.test(reminder) ? reminder : null;
     await updateHabit(id!, {
       name: trimmed,
       frequency,
+      customWeekdays: frequency === 'custom' ? sortWeekdayIndices(customWeekdays) : null,
       color: selectedColor,
       xpReward: xp,
       reminderTime: parsed ?? null,
@@ -104,8 +113,27 @@ export default function EditHabitScreen() {
             >
               <ThemedText style={frequency === 'weekly' && styles.chipText}>Weekly</ThemedText>
             </Pressable>
+            <Pressable
+              style={[styles.chip, frequency === 'custom' && { backgroundColor: colors.tint }]}
+              onPress={() => setFrequency('custom')}
+            >
+              <ThemedText style={frequency === 'custom' && styles.chipText}>Custom</ThemedText>
+            </Pressable>
           </View>
         </ThemedView>
+        {frequency === 'custom' && (
+          <ThemedView style={styles.section}>
+            <ThemedText type="subtitle">Choose days</ThemedText>
+            <CustomWeekdaysPicker
+              value={customWeekdays}
+              onChange={setCustomWeekdays}
+              accentColor={colors.primary}
+              borderColor={colors.icon}
+              textColor={colors.text}
+              mutedColor={colors.icon}
+            />
+          </ThemedView>
+        )}
         <ThemedView style={styles.section}>
           <ThemedText type="subtitle">Color</ThemedText>
           <View style={styles.row}>

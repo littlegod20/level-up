@@ -11,11 +11,22 @@ import { xpProgressInLevel } from '@/constants/xp';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import type { Habit } from '@/types/habit';
 
 const TODAY = new Date().toISOString().slice(0, 10);
 
-function isHabitDueToday(habit: { frequency: string }): boolean {
-  return habit.frequency === 'daily';
+function isHabitDueToday(habit: Habit): boolean {
+  const dow = new Date().getDay();
+  if (habit.frequency === 'daily') return true;
+  if (habit.frequency === 'weekly') {
+    const created = new Date(habit.createdAt);
+    return created.getDay() === dow;
+  }
+  if (habit.frequency === 'custom') {
+    const days = habit.customWeekdays ?? [];
+    return days.length > 0 && days.includes(dow);
+  }
+  return false;
 }
 
 export default function TodayScreen() {
@@ -67,7 +78,7 @@ export default function TodayScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]} edges={['top']}>
       <View style={styles.header}>
         <ThemedText type="title">Today</ThemedText>
-        <ThemedText type="subtitle">
+        <ThemedText type="subtitle" style={{paddingVertical:10}}>
           Level {level} · {completedToday}/{activeHabits.length} done
         </ThemedText>
         <View style={styles.xpBar}>
@@ -90,7 +101,7 @@ export default function TodayScreen() {
           <ThemedView style={styles.empty}>
             <ThemedText type="subtitle">Welcome to Level Up</ThemedText>
             <ThemedText style={styles.emptySub}>Get started by adding your first habit. Complete habits to earn XP and build streaks.</ThemedText>
-            <Pressable style={[styles.addFirst, { backgroundColor: colors.tint }]} onPress={() => router.push('/habit/new')}>
+            <Pressable style={styles.addFirst} onPress={() => router.push('/habit/new')}>
               <ThemedText style={styles.buttonText}>Add your first habit</ThemedText>
             </Pressable>
           </ThemedView>
@@ -116,7 +127,7 @@ export default function TodayScreen() {
                   )}
                 </View>
               </View>
-              <View style={[styles.checkbox, done && { backgroundColor: colors.tint }]}>
+              <View style={[styles.checkbox, done && { backgroundColor: colors.primary}]}>
                 {done ? (
                   <IconSymbol name="checkmark" size={22} color="#fff" />
                 ) : (
@@ -147,7 +158,7 @@ const styles = StyleSheet.create({
   list: { padding: 16, paddingBottom: 32 },
   empty: { padding: 24, alignItems: 'center' },
   emptySub: { textAlign: 'center', marginTop: 8, marginBottom: 16 },
-  addFirst: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12 },
+  addFirst: { paddingVertical: 12, paddingHorizontal: 20, borderRadius: 12, backgroundColor: "#E97B1B" },
   buttonText: { color: '#fff', fontWeight: '600' },
   card: {
     flexDirection: 'row',

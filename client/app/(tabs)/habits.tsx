@@ -49,7 +49,7 @@ export default function HabitsScreen() {
         )}
       />
       <Pressable
-        style={[styles.fab, { backgroundColor: colors.tint }]}
+        style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={handleAdd}
         accessibilityRole="button"
         accessibilityLabel="Add new habit"

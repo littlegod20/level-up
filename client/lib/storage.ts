@@ -4,12 +4,20 @@ import type { Habit, Completion } from '@/types/habit';
 const HABITS_KEY = '@level_up/habits';
 const COMPLETIONS_KEY = '@level_up/completions';
 
+function normalizeHabit(raw: Habit): Habit {
+  return {
+    ...raw,
+    customWeekdays: raw.customWeekdays ?? null,
+  };
+}
+
 export async function getHabits(): Promise<Habit[]> {
   const raw = await AsyncStorage.getItem(HABITS_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((h: Habit) => normalizeHabit(h));
   } catch {
     return [];
   }

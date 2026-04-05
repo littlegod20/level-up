@@ -9,6 +9,7 @@ import { useHabits } from '@/context/habits-context';
 import { computeStreak } from '@/lib/streaks';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
+import { sortWeekdayIndices, weekdayLabel } from '@/constants/weekdays';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export default function HabitDetailScreen() {
@@ -27,6 +28,14 @@ export default function HabitDetailScreen() {
     () => (habit ? computeStreak(completions, habit.id) : { current: 0, longest: 0 }),
     [completions, habit]
   );
+
+  const scheduleLabel = useMemo(() => {
+    if (!habit) return '';
+    if (habit.frequency === 'custom' && habit.customWeekdays?.length) {
+      return `Custom (${sortWeekdayIndices(habit.customWeekdays).map(weekdayLabel).join(', ')})`;
+    }
+    return habit.frequency;
+  }, [habit]);
 
   const handleEdit = () => router.push(`/habit/edit/${id}`);
   const handleDelete = () => {
@@ -60,7 +69,7 @@ export default function HabitDetailScreen() {
           </View>
           <ThemedText type="title">{habit.name}</ThemedText>
           <ThemedText style={styles.meta}>
-            {habit.frequency} · {habit.xpReward} XP per completion
+            {scheduleLabel} · {habit.xpReward} XP per completion
           </ThemedText>
         </View>
         <ThemedView style={styles.card}>

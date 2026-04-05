@@ -1,4 +1,4 @@
-export type Frequency = 'daily' | 'weekly';
+export type Frequency = 'daily' | 'weekly' | 'custom';
 
 export interface Habit {
   id: string;
@@ -6,6 +6,8 @@ export interface Habit {
   icon: string;
   color: string;
   frequency: Frequency;
+  /** When `frequency` is `custom`: JS weekday indices 0=Sun … 6=Sat. Otherwise null/omit. */
+  customWeekdays: number[] | null;
   reminderTime: string | null;
   xpReward: number;
   archived: boolean;
