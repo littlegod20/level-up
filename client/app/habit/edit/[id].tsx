@@ -171,7 +171,7 @@ export default function EditHabitScreen() {
             keyboardType="number-pad"
           />
         </ThemedView>
-        <Pressable style={[styles.button, { backgroundColor: colors.tint }]} onPress={handleSave}>
+        <Pressable style={[styles.button, { backgroundColor: colors.primary }]} onPress={handleSave}>
           <ThemedText style={styles.buttonText}>Save changes</ThemedText>
         </Pressable>
       </ScrollView>

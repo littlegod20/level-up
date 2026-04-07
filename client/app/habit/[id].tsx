@@ -89,7 +89,7 @@ export default function HabitDetailScreen() {
             ))
           )}
         </ThemedView>
-        <Pressable style={[styles.button, { backgroundColor: colors.tint }]} onPress={handleEdit}>
+        <Pressable style={[styles.button, { backgroundColor: colors.primary }]} onPress={handleEdit}>
           <ThemedText style={styles.buttonText}>Edit habit</ThemedText>
         </Pressable>
         <Pressable style={styles.deleteButton} onPress={handleDelete}>
