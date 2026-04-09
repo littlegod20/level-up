@@ -16,7 +16,20 @@ const startServer = async(): Promise<void> => {
         const port = appConfig.port
 
         server.listen(port, ()=>{
-            logger.info(`Server is running on port ${port}`);
+            logger.info(
+                `Server running in ${appConfig.env} mode on port ${appConfig.port}`
+              );
+              
+              // Only log status monitor in development (security best practice)
+              if (appConfig.env === "development") {
+                logger.info(
+                  `Status monitor: http://localhost:${appConfig.port}/status`
+                );
+              }
+        
+              logger.info(
+                `Health check endpoint: http://localhost:${appConfig.port}/api/health`
+              );
         })
 
         process.on('SIGTERM', ()=>{

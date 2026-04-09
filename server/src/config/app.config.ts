@@ -16,6 +16,11 @@ export const appConfig = {
         max: 20,
         message: 'Too many requests, please try again later.',
     },
+    basicRateLimit: {
+        windowMs: 15 * 60 * 1000,
+        max: 100,
+        message: 'Too many requests, please try again later.',
+    },
     logging:{
         level: process.env.LOG_LEVEL || 'info',
     },
