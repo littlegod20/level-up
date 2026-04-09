@@ -19,8 +19,7 @@ const startServer = async(): Promise<void> => {
             logger.info(
                 `Server running in ${appConfig.env} mode on port ${appConfig.port}`
               );
-              
-              // Only log status monitor in development (security best practice)
+
               if (appConfig.env === "development") {
                 logger.info(
                   `Status monitor: http://localhost:${appConfig.port}/status`
