@@ -9,7 +9,6 @@ const startServer = async(): Promise<void> => {
     try{
         logger.info('Initializing database connection...');
         await initializeDatabase();
-        logger.info('Database connection initialized successfully');
 
         const app = createApp()
         const server = http.createServer(app);
