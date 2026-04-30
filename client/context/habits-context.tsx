@@ -1,8 +1,17 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { Completion, Habit } from '@/types/habit';
-import { getCompletions, getHabits, setCompletions, setHabits } from '@/lib/storage';
-import { XP_PER_COMPLETION } from '@/constants/xp';
 import { cancelHabitReminder, scheduleHabitReminder } from '@/lib/notifications';
+import {
+  apiCreateCompletion,
+  apiCreateHabit,
+  apiDeleteCompletion,
+  apiDeleteHabit,
+  apiGetCompletions,
+  apiGetHabits,
+  apiGetMe,
+  apiUpdateHabit,
+} from '@/lib/api';
+import { useAuth } from '@/context/auth-context';
 
 type HabitsContextValue = {
   habits: Habit[];
@@ -19,73 +28,93 @@ type HabitsContextValue = {
 
 const HabitsContext = createContext<HabitsContextValue | null>(null);
 
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function todayString(): string {
-  const d = new Date();
-  return d.toISOString().slice(0, 10);
+function firstReminder(value: string | null): string | null {
+  if (!value) return null;
+  const first = value.split(',')[0]?.trim() ?? '';
+  return /^\d{1,2}:\d{2}$/.test(first) ? first : null;
 }
 
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const [habits, setHabitsState] = useState<Habit[]>([]);
   const [completions, setCompletionsState] = useState<Completion[]>([]);
   const [loading, setLoading] = useState(true);
+  const { token, status } = useAuth();
 
   const refresh = useCallback(async () => {
-    const [h, c] = await Promise.all([getHabits(), getCompletions()]);
+    if (!token) {
+      setHabitsState([]);
+      setCompletionsState([]);
+      return;
+    }
+
+    await apiGetMe(token);
+    const h = await apiGetHabits(token);
     setHabitsState(h);
-    setCompletionsState(c);
-  }, []);
+
+    const completionBuckets = await Promise.all(
+      h.map(async (habit) => apiGetCompletions(token, habit.id))
+    );
+    setCompletionsState(completionBuckets.flat());
+  }, [token]);
 
   useEffect(() => {
     let mounted = true;
     (async () => {
-      await refresh();
-      if (mounted) setLoading(false);
+      if (status === 'loading') return;
+      setLoading(true);
+      try {
+        await refresh();
+      } finally {
+        if (mounted) setLoading(false);
+      }
     })();
-    return () => { mounted = false; };
-  }, [refresh]);
+    return () => {
+      mounted = false;
+    };
+  }, [refresh, status]);
 
   const addHabit = useCallback(async (habit: Omit<Habit, 'id' | 'createdAt'>) => {
-    const newHabit: Habit = {
+    if (!token) return;
+    const reminderTime = firstReminder(habit.reminderTime);
+    const created = await apiCreateHabit(token, {
       ...habit,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    const next = [...habits, newHabit];
-    setHabitsState(next);
-    await setHabits(next);
-    if (newHabit.reminderTime) {
-      const [h, m] = newHabit.reminderTime.split(':').map(Number);
-      if (!isNaN(h) && !isNaN(m)) await scheduleHabitReminder(newHabit.id, newHabit.name, h, m);
+      reminderTime,
+    });
+    setHabitsState((prev) => [...prev, created]);
+    if (created.reminderTime) {
+      const [h, m] = created.reminderTime.split(':').map(Number);
+      if (!isNaN(h) && !isNaN(m)) {
+        await scheduleHabitReminder(created.id, created.name, h, m);
+      }
     }
-  }, [habits]);
+  }, [token]);
 
   const updateHabit = useCallback(async (id: string, updates: Partial<Habit>) => {
+    if (!token) return;
     const prev = habits.find((h) => h.id === id);
-    const next = habits.map((h) => (h.id === id ? { ...h, ...updates } : h));
-    setHabitsState(next);
-    await setHabits(next);
-    if (updates.reminderTime !== undefined) {
-      if (updates.reminderTime) {
-        const [h, m] = updates.reminderTime.split(':').map(Number);
+    const payload: Partial<Habit> = { ...updates };
+    if (payload.reminderTime !== undefined) {
+      payload.reminderTime = firstReminder(payload.reminderTime ?? null);
+    }
+    const updated = await apiUpdateHabit(token, id, payload);
+    setHabitsState((prevState) => prevState.map((h) => (h.id === id ? updated : h)));
+
+    if (payload.reminderTime !== undefined) {
+      if (updated.reminderTime) {
+        const [h, m] = updated.reminderTime.split(':').map(Number);
         if (!isNaN(h) && !isNaN(m))
-          await scheduleHabitReminder(id, updates.name ?? prev?.name ?? 'Habit', h, m);
+          await scheduleHabitReminder(id, updated.name ?? prev?.name ?? 'Habit', h, m);
       } else await cancelHabitReminder(id);
     }
-  }, [habits]);
+  }, [habits, token]);
 
   const deleteHabit = useCallback(async (id: string) => {
+    if (!token) return;
+    await apiDeleteHabit(token, id);
     await cancelHabitReminder(id);
-    const nextHabits = habits.filter((h) => h.id !== id);
-    const nextCompletions = completions.filter((c) => c.habitId !== id);
-    setHabitsState(nextHabits);
-    setCompletionsState(nextCompletions);
-    await setHabits(nextHabits);
-    await setCompletions(nextCompletions);
-  }, [habits, completions]);
+    setHabitsState((prev) => prev.filter((h) => h.id !== id));
+    setCompletionsState((prev) => prev.filter((c) => c.habitId !== id));
+  }, [token]);
 
   const archiveHabit = useCallback(async (id: string) => {
     await updateHabit(id, { archived: true });
@@ -97,31 +126,18 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     skipped = false,
     note: string | null = null
   ) => {
+    if (!token) return;
     const existing = completions.find((c) => c.habitId === habitId && c.date === date);
     if (existing) return;
-
-    const habit = habits.find((h) => h.id === habitId);
-    const xpAwarded = skipped ? 0 : (habit?.xpReward ?? XP_PER_COMPLETION);
-
-    const newCompletion: Completion = {
-      id: generateId(),
-      habitId,
-      date,
-      completedAt: new Date().toISOString(),
-      skipped,
-      note,
-      xpAwarded,
-    };
-    const next = [...completions, newCompletion];
-    setCompletionsState(next);
-    await setCompletions(next);
-  }, [habits, completions]);
+    const created = await apiCreateCompletion(token, habitId, { date, skipped, note });
+    setCompletionsState((prev) => [...prev, created]);
+  }, [completions, token]);
 
   const uncompleteHabit = useCallback(async (habitId: string, date: string) => {
-    const next = completions.filter((c) => !(c.habitId === habitId && c.date === date));
-    setCompletionsState(next);
-    await setCompletions(next);
-  }, [completions]);
+    if (!token) return;
+    await apiDeleteCompletion(token, habitId, date);
+    setCompletionsState((prev) => prev.filter((c) => !(c.habitId === habitId && c.date === date)));
+  }, [token]);
 
   const value = useMemo<HabitsContextValue>(
     () => ({

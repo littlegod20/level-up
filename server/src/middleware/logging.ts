@@ -19,5 +19,5 @@ export const errorLogger = (err: Error, req: Request, res: Response, next: NextF
         body: req.body,
         error: err.message,
     });
-    next();
+    next(err);
 }

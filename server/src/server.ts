@@ -1,7 +1,9 @@
+import logger from "@config/logger";
+import "reflect-metadata";
 import { appConfig } from "@config/app.config";
 import { createApp } from "./app"
+logger.info('Starting server...');
 import http from "http"
-import logger from "@config/logger";
 import { initializeDatabase } from "@config/database.config";
 
 

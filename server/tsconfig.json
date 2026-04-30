@@ -1,4 +1,7 @@
 {
+  "ts-node": {
+    "files": true
+  },
   // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
@@ -32,26 +35,28 @@
     // "noPropertyAccessFromIndexSignature": true,
 
     "strict": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "jsx": "react-jsx",
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "moduleDetection": "force",
     "skipLibCheck": true,
-    "baseUrl": "./src",
     "paths": {
-      "@config/*": ["config/*"],
-      "@controllers/*": ["controllers/*"],
-      "@entities/*": ["entities/*"],
-      "@middleware/*": ["middleware/*"],
-      "@repositories/*": ["repositories/*"],
-      "@routes/*": ["routes/*"],
-      "@services/*": ["services/*"],
-      "@types/*": ["types/*"],
-      "@utils/*": ["utils/*"],
-      "@database/*": ["database/*"],
-      "@dtos/*": ["dtos/*"]
+      "@config/*": ["./src/config/*"],
+      "@controllers/*": ["./src/controllers/*"],
+      "@entities/*": ["./src/entities/*"],
+      "@middleware/*": ["./src/middleware/*"],
+      "@repositories/*": ["./src/repositories/*"],
+      "@routes/*": ["./src/routes/*"],
+      "@services/*": ["./src/services/*"],
+      "@types/*": ["./src/types/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@database/*": ["./src/database/*"],
+      "@dtos/*": ["./src/dtos/*"],
+      "@mappers/*": ["./src/mappers/*"]
     } 
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.d.ts"],
   "exclude": ["node_modules", "dist", "test"]
 }

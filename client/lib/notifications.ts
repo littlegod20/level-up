@@ -5,6 +5,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -33,7 +35,7 @@ export async function scheduleHabitReminder(
       body: `Time for: ${habitName}`,
     },
     trigger: {
-      type: 'daily' as const,
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
     },

@@ -4,13 +4,10 @@
     "slug": "level_up",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/level_up_bg_removed.png",
     "scheme": "levelup",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-    "ios": {
-      "supportsTablet": true
-    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -19,7 +16,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.level_up"
     },
     "web": {
       "output": "static",
@@ -27,23 +25,29 @@
     },
     "plugins": [
       "expo-router",
+      "@react-native-community/datetimepicker",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
-          "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#000000",
+          "image": "./assets/images/splash.png",
           "dark": {
+            "image": "./assets/images/splash.png",
             "backgroundColor": "#000000"
-          }
+          },
+          "imageWidth": 200
         }
-      ],
-      "@react-native-community/datetimepicker"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "13e5c6c0-0c50-4da4-94cc-866606754170"
+      }
     }
   }
 }
